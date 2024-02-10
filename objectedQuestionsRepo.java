@@ -1,0 +1,25 @@
+package com.trb.allocationservice.dao;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.trb.allocationservice.dto.NotificationDTO;
+import com.trb.allocationservice.entity.ObjectedQuestionsModel;
+
+@Repository
+public interface objectedQuestionsRepo extends JpaRepository<ObjectedQuestionsModel, Long> {
+
+	ObjectedQuestionsModel findByquestionId(Integer questionNumber);
+	
+	ObjectedQuestionsModel findByobjectedQuestionsPk(Long objectedQuestionsPK);
+	
+	@Query(value="select rm.name from thrdexams.objques o left join thrdexams.obj_alloc_summary oas on oas.objques_pk = o.objques_pk left join thrdexams.ref_master rm on rm.id = oas.subject_id where oas.currrent ='Y' and o.objques_pk =:objquesId",nativeQuery=true)
+	String getSubject(@Param ("objquesId") Long questionId);
+	
+	@Query(value="select main_table.objquesId, main_table.questionsId, main_table.qbId, main_table.clientId, main_table.examName, main_table.examDate, main_table.examBatch, main_table.questionsDescription, main_table.qstImage, case when main_table.statusCode = 'APPROVED' then main_table.statusCode when main_table.statusCode = 'REJECTED' then main_table.statusCode else 'PENDING' end as FinalObjectionStatus, main_table.langId, main_table.langName, main_table.SectionName, main_table.Topic, main_table.authoredCorrectAns, main_table.revidesAns, main_table.qst_pid as parentId from ( select inner_table.objquesId as objquesId, inner_table.questionsId, inner_table.clientId, inner_table.qbId, inner_table.examName, inner_table.examDate, inner_table.examBatch, inner_table.langId, inner_table.langName, inner_table.questionsDescription, inner_table.qstImage, inner_table.SectionName, inner_table.Topic, s.code as statusCode, case when s.code in ('APPROVED', 'REJECTED') then array_to_string( array_agg( distinct case om.qst_mod_ans_id when '1' then 'A' when '2' then 'B' when '3' then 'C' when '4' then 'D' end ), ',' ) end as revidesAns, inner_table.authoredCorrectAns, inner_table.qst_pid from ( select o.objques_pk as objquesId, o.qst_pk as questionsId, o.qst_qb_id as qbId, o.qtp_clnt_id as clientId, TRIM(o.qst_mdm_name) as examName, to_char(o.qbm_date, 'DD-MM-YYYY') as examDate, o.qbm_batch as examBatch, tlm.tlm_lang_name as langName, tlm.tlm_lang_id as langId, convert_from(kbne.qst_body, 'UTF8') as questionsDescription, knms.qbi_image as qstImage, tsd.scn_name as SectionName, ttd.ttd_name as Topic, case kbne.qst_crct_ans_id when '1' then 'A' when '2' then 'B' when '3' then 'C' when '4' then 'D' end as authoredCorrectAns, o.qst_pid from thrdexams.objques o inner join thrdexams.tbl_module_lang_map tmlm2 on tmlm2.tmlm_module_id = o.par_mdm_id inner join thrdexams.tbl_lang_mstr tlm on tlm.tlm_lang_id = tmlm2.tmlm_lang_id inner join thrdexams.kub6nk_b6xch_m6pp1n9 knbxmpn on knbxmpn.qbm_module_id = tmlm2.tmlm_module_lang_id and knbxmpn.qbm_date = o.qbm_date and knbxmpn.qbm_batch = o.qbm_batch inner join thrdexams.mdl_mstr mm on o.qst_mdm_id = mm.mdm_id inner join thrdexams.kusxn_p6p3r kppr on kppr.qtp_qb_id = cast(o.qst_qb_id as text) and kppr.qtp_mdm_id = o.qst_mdm_id and kppr.qtp_clnt_id = o.qtp_clnt_id inner join thrdexams.kusxn_obj3cx1on ko on ko.qtp_qb_id = kppr.qtp_qb_id and ko.qtp_clnt_id = kppr.qtp_clnt_id and ko.eed_id = kppr.qtp_eed_id inner join thrdexams.tst_def_sct_tpc_mapping tdstm on tdstm.tdst_map_pk = kppr.qtp_fk_tdst_pk inner join thrdexams.tst_sctn_def tsd on tdstm.tdst_fk_scn_pk = tsd.scn_pk inner join thrdexams.tst_tpc_def ttd on ttd.ttd_pk = tdstm.tdst_fk_ttd_pk inner join thrdexams.kusxn_b6nk_ed kbne on kbne.qst_qb_id = knbxmpn.qbm_qb_id and o.qtp_clnt_id = kbne.qst_clnt_id left join thrdexams.kub6nk_1m693s knms on knms.qbi_qb_id = kbne.qst_qb_id and knms.qbi_filename = kbne.qst_img_path ) as inner_table left join thrdexams.obj_alloc_summary oas on oas.objques_pk = inner_table.objquesId and oas.currrent = 'Y' left join thrdexams.obj_alloc oa on oa.summary_id = oas.id left join thrdexams.objques_modans as om on oa.objalloc_pk = om.objalloc_pk left join thrdexams.users u on u.user_pk = oa.user_pk and u.user_id = 'Admin' left join thrdexams.status s on s.status_id = oas.status_id group by inner_table.clientId, inner_table.examName, inner_table.examDate, inner_table.examBatch, inner_table.langId, inner_table.langName, inner_table.questionsDescription, inner_table.qstImage, inner_table.SectionName, inner_table.Topic, inner_table.objquesId, s.code, inner_table.qst_pid, inner_table.questionsId, inner_table.qbId, inner_table.authoredCorrectAns ) as main_table WHERE ( ?1 is null or main_table.examName = ?1 ) and ( ?2 is null or main_table.examDate = ?2 ) and ( ?3 is null or main_table.examBatch = ?3 ) order by main_table.objquesId, main_table.langId",nativeQuery=true)
+	List<NotificationDTO> getNotificationReportDetails(String examName,String examDate,String examBatch);
+}
